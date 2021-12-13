@@ -29,4 +29,21 @@ public class ServiceRepository extends AbstractRepository {
         }
         return list;
     }
+
+    public Optional<Double> calculateCostByClient(String name) {
+        return Optional.of(2.0);
+//        try (var connection = getConnection()) {
+//            String sql = "select * from service;"; // TODO
+//            System.out.println(sql);
+//            try (var statement = connection.prepareStatement(sql)) {
+//                var resultSet = statement.executeQuery();
+//                if (resultSet.next()) {
+//                    return Optional.of(resultSet.getDouble("cost"));
+//                }
+//            }
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//        return Optional.empty();
+    }
 }

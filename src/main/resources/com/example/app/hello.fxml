@@ -13,10 +13,9 @@
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
     </padding>
 
-
     <ListView fx:id="listView"/>
 
-    <Button fx:id="button" text="Войти" onAction="#onHelloButtonClick"/>
-    <TextField text="username" fx:id="textUsername"/>
-    <PasswordField fx:id="textPassword"/>
+    <TextField fx:id="textUsername" promptText="username"/>
+    <PasswordField fx:id="textPassword" promptText="password"/>
+    <Button fx:id="loginButton" text="Войти" onAction="#onLoginButtonClick"/>
 </VBox>

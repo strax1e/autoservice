@@ -5,6 +5,7 @@ import com.example.app.db.ServiceRepository;
 import com.example.app.db.UserRepository;
 import com.example.app.entity.Car;
 import com.example.app.entity.Service;
+import com.example.app.entity.User;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -26,13 +27,13 @@ public class HelloController {
     @FXML
     private ListView<Button> listView;
 
-    private TableView tableView;
-
     @FXML
-    private Button button;
+    private Button loginButton;
 
     @FXML
     private VBox vBox;
+
+    private TableView tableView;
 
     private final ServiceRepository serviceRepository;
     private final CarRepository carRepository;
@@ -43,7 +44,11 @@ public class HelloController {
         try (final var in = HelloController.class.getResourceAsStream("db.properties")) {
             properties.load(in);
         } catch (IOException e) {
-            e.printStackTrace();
+            final var alert = new Alert(Alert.AlertType.ERROR);
+            alert.setContentText("Ошибка загрузки БД");
+            alert.show();
+
+            setEnableAuthorizingBlock(false);
         }
 
         this.serviceRepository = new ServiceRepository(properties);
@@ -52,38 +57,93 @@ public class HelloController {
     }
 
     @FXML
-    protected void onHelloButtonClick() {
-        button.setDisable(true);
-        textUsername.setDisable(true);
-        textPassword.setDisable(true);
+    protected void onLoginButtonClick() {
+        setEnableAuthorizingBlock(false);
 
         final var username = textUsername.getText();
         final var password = textPassword.getText();
 
         final var authorizer = new Authorizer(userRepository);
-        final var user = authorizer.auth(username, password);
+        final var userOpt = authorizer.auth(username, password);
 
-        System.out.println(user.isPresent() ? "ok" : "not ok");
+        if (userOpt.isEmpty()) {
+            setEnableAuthorizingBlock(true);
+            alertInvalidCredentials();
+            return;
+        }
 
-        final var buttonGetServices = new Button("Вывести список услуг");
-        buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
-        listView.getItems().add(buttonGetServices);
+        removeAuthorizingBlock();
+        createActionButtons(userOpt.get());
+    }
 
+    private void createActionButtons(User user) {
+        createGetServicesButton();
+        switch (user.role()) {
+            case ADMIN -> {
+                createGetCarsButton();
+                createGetCarInfoButton();
+                createGetWorkerInfo();
+            }
+            case CLIENT -> {
+                createGetPriceButton(user.username());
+            }
+            case WORKER -> {
+                createGetCarsButton();
+                createGetCarInfoButton();
+            }
+        }
+    }
+
+    private void alertInvalidCredentials() {
+        final var alert = new Alert(Alert.AlertType.WARNING);
+        alert.setContentText("Неверный логин или пароль");
+        alert.show();
+    }
+
+    private void createGetWorkerInfo() {
+        final var buttonGetWorkerInfo = new Button("Выдать информацию о работе специалиста за отчетный период");
+        // TODO: buttonGetWorkerInfo.setOnAction()
+        listView.getItems().add(buttonGetWorkerInfo);
+    }
+
+    private void createGetCarInfoButton() {
+        final var buttonGetCarInfo = new Button("Выдать информацию о машине");
+        // TODO: buttonGetCarInfo.setOnAction()
+        listView.getItems().add(buttonGetCarInfo);
+    }
+
+    private void createGetCarsButton() {
         final var buttonGetCars = new Button("Вывести список автомобилей");
         buttonGetCars.setOnAction(ignore -> switchTableToCars(carRepository.getCars(), vBox));
         listView.getItems().add(buttonGetCars);
+    }
 
-        final var buttonGetCarInfo = new Button("Выдать информацию о машине");
-//        buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
-        listView.getItems().add(buttonGetCarInfo);
+    private void createGetServicesButton() {
+        final var buttonGetServices = new Button("Вывести список услуг");
+        buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
+        listView.getItems().add(buttonGetServices);
+    }
 
-        final var buttonGetWorkerInfo = new Button("Выдать информацию о работе специалиста за отчетный период");
-//        buttonGetCars.setOnAction(ignore -> switchTableToCars(carRepository.getCars(), vBox));
-        listView.getItems().add(buttonGetWorkerInfo);
-
+    private void createGetPriceButton(String username) {
         final var buttonGetPrice = new Button("Вывести стоимость услуг для клиента");
-//        buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
+        buttonGetPrice.setOnAction(ignore -> {
+            final var alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setContentText("Сумма к оплате: " + serviceRepository.calculateCostByClient(username).orElse(Double.NaN));
+            alert.show();
+        });
         listView.getItems().add(buttonGetPrice);
+    }
+
+    private void setEnableAuthorizingBlock(boolean enable) {
+        loginButton.setDisable(!enable);
+        textUsername.setDisable(!enable);
+        textPassword.setDisable(!enable);
+    }
+
+    private void removeAuthorizingBlock() {
+        vBox.getChildren().remove(textUsername);
+        vBox.getChildren().remove(textPassword);
+        vBox.getChildren().remove(loginButton);
     }
 
     private void switchTableToServices(Collection<Service> services, Pane parent) {
