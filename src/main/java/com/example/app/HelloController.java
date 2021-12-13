@@ -2,9 +2,9 @@ package com.example.app;
 
 import com.example.app.db.CarRepository;
 import com.example.app.db.ServiceRepository;
+import com.example.app.db.UserRepository;
 import com.example.app.entity.Car;
 import com.example.app.entity.Service;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -16,6 +16,12 @@ import java.util.Collection;
 import java.util.Properties;
 
 public class HelloController {
+
+    @FXML
+    private TextField textUsername;
+
+    @FXML
+    private PasswordField textPassword;
 
     @FXML
     private ListView<Button> listView;
@@ -30,6 +36,7 @@ public class HelloController {
 
     private final ServiceRepository serviceRepository;
     private final CarRepository carRepository;
+    private final UserRepository userRepository;
 
     public HelloController() {
         final var properties = new Properties();
@@ -41,11 +48,22 @@ public class HelloController {
 
         this.serviceRepository = new ServiceRepository(properties);
         this.carRepository = new CarRepository(properties);
+        this.userRepository = new UserRepository(properties);
     }
 
     @FXML
-    protected void onHelloButtonClick(ActionEvent event) {
+    protected void onHelloButtonClick() {
         button.setDisable(true);
+        textUsername.setDisable(true);
+        textPassword.setDisable(true);
+
+        final var username = textUsername.getText();
+        final var password = textPassword.getText();
+
+        final var authorizer = new Authorizer(userRepository);
+        final var user = authorizer.auth(username, password);
+
+        System.out.println(user.isPresent() ? "ok" : "not ok");
 
         final var buttonGetServices = new Button("Вывести список услуг");
         buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
@@ -63,7 +81,7 @@ public class HelloController {
 //        buttonGetCars.setOnAction(ignore -> switchTableToCars(carRepository.getCars(), vBox));
         listView.getItems().add(buttonGetWorkerInfo);
 
-        final var buttonGetPrice = new Button("Расчитать стоимость услуг для клиента");
+        final var buttonGetPrice = new Button("Вывести стоимость услуг для клиента");
 //        buttonGetServices.setOnAction(ignore -> switchTableToServices(serviceRepository.getServices(), vBox));
         listView.getItems().add(buttonGetPrice);
     }

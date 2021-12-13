@@ -9,4 +9,5 @@ module com.example.demo {
     exports com.example.app.db;
     exports com.example.app.entity;
     opens com.example.app.db to javafx.fxml;
+    opens com.example.app.entity to javafx.fxml;
 }
