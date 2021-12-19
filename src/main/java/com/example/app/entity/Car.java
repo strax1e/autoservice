@@ -1,22 +1,29 @@
 package com.example.app.entity;
 
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
 
 public final class Car {
 
-    private final SimpleIntegerProperty number;
-    private final SimpleIntegerProperty owner;
+    private final SimpleStringProperty carRegNumber;
+    private final SimpleIntegerProperty clientId;
+    private final SimpleStringProperty clientName;
 
-    public Car(int number, int owner) {
-        this.number = new SimpleIntegerProperty(number);
-        this.owner = new SimpleIntegerProperty(owner);
+    public Car(String carRegNumber, int clientId, String clientName) {
+        this.carRegNumber = new SimpleStringProperty(carRegNumber);
+        this.clientId = new SimpleIntegerProperty(clientId);
+        this.clientName = new SimpleStringProperty(clientName);
     }
 
-    public int getNumber() {
-        return number.get();
+    public String getCarRegNumber() {
+        return carRegNumber.get();
     }
 
-    public int getOwner() {
-        return owner.get();
+    public int getClientId() {
+        return clientId.get();
+    }
+
+    public String getClientName() {
+        return clientName.get();
     }
 }
