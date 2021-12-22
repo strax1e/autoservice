@@ -91,6 +91,7 @@ public class HelloController {
                 createAddServiceButton();
                 createAddCarButton();
                 createShowAllIssuesButton();
+                createAddClientButton();
             }
             case CLIENT -> createGetPriceButton(user.username());
             case SPECIALIST -> {
@@ -100,6 +101,46 @@ public class HelloController {
                 createShowMyIssuesButton();
             }
         }
+    }
+
+    private void createAddClientButton() {
+        var buttonAddClient = new Button("Добавить нового клиента");
+        buttonAddClient.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(
+                    HUMAN_NAME,
+                    "Логин",
+                    "Пароль",
+                    "Номер телефона",
+                    "Автомобильный номер",
+                    "Банковские реквизиты"
+            ));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            var isAdded = false;
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                try {
+                    isAdded = userRepository.addNewClient(
+                            map.get(HUMAN_NAME),
+                            map.get("Логин"),
+                            map.get("Пароль"),
+                            map.get("Номер телефона"),
+                            map.get("Автомобильный номер"),
+                            map.get("Банковские реквизиты")
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!isAdded) {
+                var alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Произошла ошибка, изменения отменены");
+                alert.show();
+            }
+        });
+        listView.getItems().add(buttonAddClient);
     }
 
     private void createShowAllIssuesButton() {
