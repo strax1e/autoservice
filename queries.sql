@@ -195,7 +195,7 @@ values ('А7719ПР078', 3);
 -- 2 tr
 insert into SPECIALIST(SPECIALIST_NAME, PHONE_NUMBER)
 values ('Аркадий Пакетик', '+77484496396');
-insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID);
+insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID)
 values (7, 4);
 --
 
@@ -206,7 +206,7 @@ insert into SERVICE(SERVICE_NAME, price)
 values ('Полировка кузова', 300);
 
 delete from "user"
-where USERNAME in (select username from USER_CLIENT where CLIENT_ID = 9)
+where USERNAME in (select username from USER_CLIENT where CLIENT_ID = 9);
 
 
 update ISSUED_SERVICE
@@ -236,3 +236,4 @@ from ISSUED_SERVICE
          left join CLIENT on CLIENT.CLIENT_ID = CAR.CLIENT_ID
          left join SPECIALIST_SERVICE on SPECIALIST_SERVICE.SPECIALIST_SERVICE_ID = ISSUED_SERVICE.SPECIALIST_SERVICE_ID
          left join SPECIALIST on SPECIALIST.SPECIALIST_ID = SPECIALIST_SERVICE.SPECIALIST_ID
+         left join SERVICE on SERVICE.SERVICE_ID = SPECIALIST_SERVICE.SERVICE_ID;
