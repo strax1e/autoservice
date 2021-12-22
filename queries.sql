@@ -30,8 +30,8 @@ values ('Олег Грибович', '+79847463946'),
 create table SPECIALIST_SERVICE
 (
     SPECIALIST_SERVICE_ID serial primary key,
-    SERVICE_ID            int not null references SERVICE (SERVICE_ID),
-    SPECIALIST_ID         int not null references SPECIALIST (SPECIALIST_ID)
+    SERVICE_ID            int not null references SERVICE (SERVICE_ID) on delete cascade,
+    SPECIALIST_ID         int not null references SPECIALIST (SPECIALIST_ID) on delete cascade
 );
 
 insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID)
@@ -57,7 +57,7 @@ values ('Василий Чичиков', '7384388058376993753', '+79480463987'),
 create table CAR
 (
     CAR_REG_NUMBER CHAR(9) primary key,
-    CLIENT_ID      int not null references CLIENT (CLIENT_ID)
+    CLIENT_ID      int not null references CLIENT (CLIENT_ID) on delete cascade
 );
 
 insert into CAR
@@ -98,8 +98,8 @@ values ('VC', 'client', 'CLIENT'),
 
 create table USER_CLIENT
 (
-    CLIENT_ID int references CLIENT (CLIENT_ID),
-    USERNAME  varchar(30) references "user" (USERNAME),
+    CLIENT_ID int references CLIENT (CLIENT_ID) on delete cascade,
+    USERNAME  varchar(30) references "user" (USERNAME) on delete cascade,
 
     primary key (CLIENT_ID, USERNAME)
 );
@@ -110,8 +110,8 @@ values (1, 'VC'),
 
 create table USER_SPECIALIST
 (
-    SPECIALIST_ID int references SPECIALIST (SPECIALIST_ID),
-    USERNAME      varchar(30) references "user" (USERNAME),
+    SPECIALIST_ID int references SPECIALIST (SPECIALIST_ID) on delete cascade,
+    USERNAME      varchar(30) references "user" (USERNAME) on delete cascade,
 
     primary key (SPECIALIST_ID, USERNAME)
 );
@@ -186,28 +186,70 @@ where (date_part('month', COMPLETION_DATE) = 3 * (3 - 1) + 1 or date_part('month
   and date_part('year', COMPLETION_DATE) = 2021;
 
 --1 tr
+begin;
 insert into CLIENT(CLIENT_NAME, BANK, PHONE_NUMBER)
 values ('Никита Облепиха', '3886993058377384753', '+79478046398');
 insert into CAR
 values ('А7719ПР078', 3);
+insert into "user" (USERNAME, PASSWORD, ROLE)
+values ('NO', 'client', 'CLIENT');
+insert into USER_CLIENT (CLIENT_ID, USERNAME)
+values (3, 'NO');
+commit;
 --
 
 -- 2 tr
 insert into SPECIALIST(SPECIALIST_NAME, PHONE_NUMBER)
 values ('Аркадий Пакетик', '+77484496396');
 insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID)
-values (7, 4);
+values (7, 4); -- нужна проверка на услугу
+insert into "user" (USERNAME, PASSWORD, ROLE)
+values ('AP', 'specialist', 'SPECIALIST');
+insert into USER_SPECIALIST (SPECIALIST_ID, USERNAME)
+values (4, 'AP');
 --
 
+insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID) -- нужна проверка на специалиста
+values (6, 4);
+
 insert into CAR
-values ('А564УА003', 3);
+values ('А564УА003', 2);
 
 insert into SERVICE(SERVICE_NAME, price)
 values ('Полировка кузова', 300);
 
-delete from "user"
-where USERNAME in (select username from USER_CLIENT where CLIENT_ID = 9);
+insert into ISSUED_SERVICE(COMPLETION_DATE, SPECIALIST_SERVICE_ID, CAR_REG_NUMBER) -- нужна проверка на услугу и машину
+values ('2021-09-29', 5, 'А564УА003');
 
+delete
+from SPECIALIST_SERVICE
+where SPECIALIST_SERVICE_ID = 3;
+
+-- 3
+delete
+from "user"
+where USERNAME in (select USERNAME from USER_SPECIALIST where SPECIALIST_ID = 3);
+delete
+from SPECIALIST
+where SPECIALIST_ID = 3;
+--
+
+-- 4
+delete
+from "user"
+where USERNAME in (select USERNAME from USER_CLIENT where CLIENT_ID = 3);
+delete
+from CLIENT
+where CLIENT_ID = 3;
+--
+
+delete
+from SERVICE
+where SERVICE_ID = 3;
+
+delete
+from CAR
+where CAR_REG_NUMBER = 'Т938ПР132';
 
 update ISSUED_SERVICE
 set COMPLETION_DATE = '2020-01-02'
@@ -238,3 +280,6 @@ from ISSUED_SERVICE
          left join SPECIALIST_SERVICE on SPECIALIST_SERVICE.SPECIALIST_SERVICE_ID = ISSUED_SERVICE.SPECIALIST_SERVICE_ID
          left join SPECIALIST on SPECIALIST.SPECIALIST_ID = SPECIALIST_SERVICE.SPECIALIST_ID
          left join SERVICE on SERVICE.SERVICE_ID = SPECIALIST_SERVICE.SERVICE_ID;
+
+select CLIENT_ID from CLIENT
+where CLIENT_NAME = '';
