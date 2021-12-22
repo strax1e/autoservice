@@ -36,4 +36,22 @@ public class CarRepository extends AbstractRepository {
         }
         return list;
     }
+
+    public boolean addCar(String number, int clientId) {
+        try (var connection = getConnection()) {
+            String sql = """
+                    insert into CAR(CAR_REG_NUMBER, CLIENT_ID)
+                    values (?, ?);
+                    """;
+            System.out.println(sql);
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setString(1, number);
+                statement.setInt(2, clientId);
+                return statement.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

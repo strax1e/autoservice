@@ -1,9 +1,6 @@
 package com.example.app;
 
-import com.example.app.db.CarRepository;
-import com.example.app.db.ServiceRepository;
-import com.example.app.db.SpecialistRepository;
-import com.example.app.db.UserRepository;
+import com.example.app.db.*;
 import com.example.app.entity.*;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -17,27 +14,33 @@ import java.util.*;
 
 public class HelloController {
 
+    private static final String NUMBER = "Номер";
+    private static final String MONTH = "Месяц";
+    private static final String YEAR = "Год";
+    private static final String DAY = "День";
+    private static final String QUARTER = "Квартал";
+    private static final String HUMAN_NAME = "Имя";
+    private static final String NAME = "Название";
+    private static final String PRICE = "Цена";
+    private static final String ID = "Идентификатор";
+
     @FXML
     private TextField textUsername;
-
     @FXML
     private PasswordField textPassword;
-
     @FXML
     private ListView<Button> listView;
-
     @FXML
     private Button loginButton;
-
     @FXML
     private VBox vBox;
 
-    private TableView tableView;
-
+    private TableView<?> tableView;
     private final ServiceRepository serviceRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
     private final SpecialistRepository specialistRepository;
+    private final IssueRepository issueRepository;
 
     public HelloController() {
         final var properties = new Properties();
@@ -55,6 +58,7 @@ public class HelloController {
         this.carRepository = new CarRepository(properties);
         this.userRepository = new UserRepository(properties);
         this.specialistRepository = new SpecialistRepository(properties);
+        this.issueRepository = new IssueRepository(properties);
     }
 
     @FXML
@@ -84,13 +88,148 @@ public class HelloController {
                 createGetCarsButton();
                 createGetCarInfoButton();
                 createGetSpecialistReportButtons();
+                createAddServiceButton();
+                createAddCarButton();
+                createShowAllIssuesButton();
             }
             case CLIENT -> createGetPriceButton(user.username());
             case SPECIALIST -> {
                 createGetCarsButton();
                 createGetCarInfoButton();
+                createCompleteIssueButton();
+                createShowMyIssuesButton();
             }
         }
+    }
+
+    private void createShowAllIssuesButton() {
+        var buttonShowAllIssuesButton = new Button("Выдать информацию о заказах");
+        buttonShowAllIssuesButton.setOnAction(ignore -> {
+            removeCurrentTableView();
+            switchTableToAllIssues(issueRepository.getIssues(), vBox);
+        });
+        listView.getItems().add(buttonShowAllIssuesButton);
+    }
+
+    private void switchTableToAllIssues(List<Issue> issues, Pane parent) {
+        final TableView<Issue> table = getNewTableView();
+
+        TableColumn<Issue, Integer> idColumn = new TableColumn<>(ID);
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+        table.getColumns().add(idColumn);
+
+        TableColumn<Issue, String> numberColumn = new TableColumn<>(NUMBER);
+        numberColumn.setCellValueFactory(new PropertyValueFactory<>("carRegNumber"));
+        table.getColumns().add(numberColumn);
+
+        TableColumn<Issue, String> clientColumn = new TableColumn<>("Имя клиента");
+        clientColumn.setCellValueFactory(new PropertyValueFactory<>("clientName"));
+        table.getColumns().add(clientColumn);
+
+        TableColumn<Issue, String> specialistColumn = new TableColumn<>("Имя специалиста");
+        specialistColumn.setCellValueFactory(new PropertyValueFactory<>("specialistName"));
+        table.getColumns().add(specialistColumn);
+
+        TableColumn<Issue, String> serviceColumn = new TableColumn<>("Название услуги");
+        serviceColumn.setCellValueFactory(new PropertyValueFactory<>("serviceName"));
+        table.getColumns().add(serviceColumn);
+
+        TableColumn<Issue, String> completionDate = new TableColumn<>("Дата завершения");
+        completionDate.setCellValueFactory(new PropertyValueFactory<>("completionDate"));
+        table.getColumns().add(completionDate);
+
+        issues.forEach(x -> table.getItems().add(x));
+        parent.getChildren().add(table);
+    }
+
+    private void createShowMyIssuesButton() {
+        var buttonShowMyIssuesButton = new Button("Выдать информацию о моих заказах");
+        buttonShowMyIssuesButton.setOnAction(ignore -> {
+            removeCurrentTableView();
+            switchTableToMyIssues(issueRepository.getIssues(textUsername.getText()), vBox);
+        });
+        listView.getItems().add(buttonShowMyIssuesButton);
+    }
+
+    private void switchTableToMyIssues(List<MyIssue> issues, Pane parent) {
+        final TableView<MyIssue> table = getNewTableView();
+
+        TableColumn<MyIssue, Integer> idColumn = new TableColumn<>(ID);
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+        table.getColumns().add(idColumn);
+
+        TableColumn<MyIssue, String> numberColumn = new TableColumn<>(NUMBER);
+        numberColumn.setCellValueFactory(new PropertyValueFactory<>("carRegNumber"));
+        table.getColumns().add(numberColumn);
+
+        TableColumn<MyIssue, String> completionDate = new TableColumn<>("Дата завершения");
+        completionDate.setCellValueFactory(new PropertyValueFactory<>("completionDate"));
+        table.getColumns().add(completionDate);
+
+        issues.forEach(x -> table.getItems().add(x));
+        parent.getChildren().add(table);
+    }
+
+    private void createCompleteIssueButton() {
+        final var buttonCompleteIssue = new Button("Завершить заказ");
+        buttonCompleteIssue.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(ID));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            var isUpdated = false;
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                isUpdated = issueRepository.complete(Integer.parseInt(map.get(ID)), textUsername.getText());
+            }
+            if (!isUpdated) {
+                final var alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Произошла ошибка. Вероятно, это не ваш заказ, или идентификатор указан неверно");
+                alert.show();
+            }
+        });
+        listView.getItems().add(buttonCompleteIssue);
+    }
+
+    private void createAddServiceButton() {
+        final var buttonAddService = new Button("Добавить новую услугу");
+        buttonAddService.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(NAME, PRICE));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                serviceRepository.addService(map.get(NAME), Double.parseDouble(map.get(PRICE)));
+            }
+        });
+        listView.getItems().add(buttonAddService);
+    }
+
+    private void createAddCarButton() {
+        final var buttonAddService = new Button("Добавить новую машину");
+        buttonAddService.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(NUMBER, ID));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            var isAdded = false;
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                try {
+                    isAdded = carRepository.addCar(map.get(NUMBER), Integer.parseInt(map.get(ID)));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!isAdded) {
+                var alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Произошла ошибка, возможно клиента с таким идентификатором нет");
+                alert.show();
+            }
+        });
+        listView.getItems().add(buttonAddService);
     }
 
     private void alertInvalidCredentials() {
@@ -109,85 +248,58 @@ public class HelloController {
     private void createGetSpecialistQuarterReportButton() {
         final var buttonGetSpecialistDayReport = new Button("Выдать информацию о работе специалиста за квартал");
         buttonGetSpecialistDayReport.setOnAction(ignore -> {
-            var dialog = new Dialog<Map<String, String>>();
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
-
-            var gridPane = new GridPane();
-            var name = new TextField();
-            name.setPromptText("Имя");
-            var year = new TextField();
-            year.setPromptText("Год");
-            var quarter = new TextField();
-            quarter.setPromptText("Квартал");
-
-            gridPane.add(name, 0, 0);
-            gridPane.add(year, 0, 1);
-            gridPane.add(quarter, 0, 2);
-
-            dialog.getDialogPane().setContent(gridPane);
-            dialog.setResultConverter(dialogButton -> {
-                if (ButtonType.OK.equals(dialogButton)) {
-                    var map = new HashMap<String, String>();
-                    map.put("name", name.getText());
-                    map.put("year", year.getText());
-                    map.put("quarter", quarter.getText());
-                    return map;
-                }
-                return null;
-            });
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(HUMAN_NAME, YEAR, QUARTER));
             Optional<Map<String, String>> result = dialog.showAndWait();
 
             if (result.isPresent()) {
                 var map = result.get();
                 removeCurrentTableView();
-                switchTableToSpecialistReports(specialistRepository.getSpecialistQuarterReport(map.get("name"),
-                        Integer.parseInt(map.get("year")), Integer.parseInt(map.get("quarter"))), vBox);
+                switchTableToSpecialistReports(specialistRepository.getSpecialistQuarterReport(map.get(HUMAN_NAME),
+                        Integer.parseInt(map.get(YEAR)), Integer.parseInt(map.get(QUARTER))), vBox);
             }
         });
         listView.getItems().add(buttonGetSpecialistDayReport);
     }
 
+    private Dialog<Map<String, String>> getDialogWithTextFields(Collection<String> names) {
+        var dialog = new Dialog<Map<String, String>>();
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
+
+        var fieldsMap = new HashMap<String, TextField>();
+        var pane = new GridPane();
+        int count = 0;
+        for (String s : names) {
+            var field = new TextField();
+            field.setPromptText(s);
+            pane.add(field, 0, count);
+            fieldsMap.put(s, field);
+            count++;
+        }
+
+        dialog.getDialogPane().setContent(pane);
+        dialog.setResultConverter(dialogButton -> {
+            if (ButtonType.OK.equals(dialogButton)) {
+                var map = new HashMap<String, String>();
+                fieldsMap.forEach((name, field) -> map.put(name, field.getText()));
+                return map;
+            }
+            return null;
+        });
+        return dialog;
+    }
+
     private void createGetSpecialistDayReportButton() {
         final var buttonGetSpecialistDayReport = new Button("Выдать информацию о работе специалиста за день");
         buttonGetSpecialistDayReport.setOnAction(ignore -> {
-            var dialog = new Dialog<Map<String, String>>();
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
-
-            var gridPane = new GridPane();
-            var name = new TextField();
-            name.setPromptText("Имя");
-            var year = new TextField();
-            year.setPromptText("Год");
-            var month = new TextField();
-            month.setPromptText("Месяц");
-            var day = new TextField();
-            day.setPromptText("День");
-
-            gridPane.add(name, 0, 0);
-            gridPane.add(year, 0, 1);
-            gridPane.add(month, 0, 2);
-            gridPane.add(day, 0, 3);
-
-            dialog.getDialogPane().setContent(gridPane);
-            dialog.setResultConverter(dialogButton -> {
-                if (ButtonType.OK.equals(dialogButton)) {
-                    var map = new HashMap<String, String>();
-                    map.put("name", name.getText());
-                    map.put("year", year.getText());
-                    map.put("month", month.getText());
-                    map.put("day", day.getText());
-                    return map;
-                }
-                return null;
-            });
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(HUMAN_NAME, YEAR, MONTH, DAY));
             Optional<Map<String, String>> result = dialog.showAndWait();
 
             if (result.isPresent()) {
                 var map = result.get();
                 removeCurrentTableView();
-                switchTableToSpecialistReports(specialistRepository.getSpecialistDayReport(map.get("name"),
-                        Integer.parseInt(map.get("year")), Integer.parseInt(map.get("month")),
-                        Integer.parseInt(map.get("day"))), vBox);
+                switchTableToSpecialistReports(specialistRepository.getSpecialistDayReport(map.get(HUMAN_NAME),
+                        Integer.parseInt(map.get(YEAR)), Integer.parseInt(map.get(MONTH)),
+                        Integer.parseInt(map.get(DAY))), vBox);
             }
         });
         listView.getItems().add(buttonGetSpecialistDayReport);
@@ -196,39 +308,14 @@ public class HelloController {
     private void createGetSpecialistMonthReportButton() {
         final var buttonGetSpecialistMonthReport = new Button("Выдать информацию о работе специалиста за месяц");
         buttonGetSpecialistMonthReport.setOnAction(ignore -> {
-            var dialog = new Dialog<Map<String, String>>();
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
-
-            var gridPane = new GridPane();
-            var name = new TextField();
-            name.setPromptText("Имя");
-            var year = new TextField();
-            year.setPromptText("Год");
-            var month = new TextField();
-            month.setPromptText("Месяц");
-
-            gridPane.add(name, 0, 0);
-            gridPane.add(year, 0, 1);
-            gridPane.add(month, 0, 2);
-
-            dialog.getDialogPane().setContent(gridPane);
-            dialog.setResultConverter(dialogButton -> {
-                if (ButtonType.OK.equals(dialogButton)) {
-                    var map = new HashMap<String, String>();
-                    map.put("name", name.getText());
-                    map.put("year", year.getText());
-                    map.put("month", month.getText());
-                    return map;
-                }
-                return null;
-            });
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(HUMAN_NAME, YEAR, MONTH));
             Optional<Map<String, String>> result = dialog.showAndWait();
 
             if (result.isPresent()) {
                 var map = result.get();
                 removeCurrentTableView();
-                switchTableToSpecialistReports(specialistRepository.getSpecialistMonthReport(map.get("name"),
-                        Integer.parseInt(map.get("year")), Integer.parseInt(map.get("month"))), vBox);
+                switchTableToSpecialistReports(specialistRepository.getSpecialistMonthReport(map.get(HUMAN_NAME),
+                        Integer.parseInt(map.get(YEAR)), Integer.parseInt(map.get(MONTH))), vBox);
             }
         });
         listView.getItems().add(buttonGetSpecialistMonthReport);
@@ -237,35 +324,14 @@ public class HelloController {
     private void createGetSpecialistYearReportButton() {
         final var buttonGetSpecialistYearReport = new Button("Выдать информацию о работе специалиста за год");
         buttonGetSpecialistYearReport.setOnAction(ignore -> {
-            var dialog = new Dialog<Map<String, String>>();
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
-
-            var gridPane = new GridPane();
-            var name = new TextField();
-            name.setPromptText("Имя");
-            var year = new TextField();
-            year.setPromptText("Год");
-
-            gridPane.add(name, 0, 0);
-            gridPane.add(year, 0, 1);
-
-            dialog.getDialogPane().setContent(gridPane);
-            dialog.setResultConverter(dialogButton -> {
-                if (ButtonType.OK.equals(dialogButton)) {
-                    var map = new HashMap<String, String>();
-                    map.put("name", name.getText());
-                    map.put("year", year.getText());
-                    return map;
-                }
-                return null;
-            });
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(HUMAN_NAME, YEAR));
             Optional<Map<String, String>> result = dialog.showAndWait();
 
             if (result.isPresent()) {
                 var map = result.get();
                 removeCurrentTableView();
-                switchTableToSpecialistReports(specialistRepository.getSpecialistYearReport(map.get("name"),
-                        Integer.parseInt(map.get("year"))), vBox);
+                switchTableToSpecialistReports(specialistRepository.getSpecialistYearReport(map.get(HUMAN_NAME),
+                        Integer.parseInt(map.get(YEAR))), vBox);
             }
         });
         listView.getItems().add(buttonGetSpecialistYearReport);
@@ -274,12 +340,12 @@ public class HelloController {
     private void createGetCarInfoButton() {
         final var buttonGetCarInfo = new Button("Выдать информацию об услугах, оказываемых машине");
         buttonGetCarInfo.setOnAction(ignore -> {
-            final var dialog = new TextInputDialog();
-            dialog.setHeaderText("Enter number of car:");
-            Optional<String> result = dialog.showAndWait();
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(NUMBER));
+            Optional<Map<String, String>> result = dialog.showAndWait();
 
             if (result.isPresent()) {
-                var list = serviceRepository.getServicesOfCar(result.get());
+                var map = result.get();
+                var list = serviceRepository.getServicesOfCar(map.get(NUMBER));
                 if (list.isEmpty()) {
                     final var alert = new Alert(Alert.AlertType.WARNING);
                     alert.setContentText("По заданной машине нет услуг");
@@ -337,11 +403,11 @@ public class HelloController {
     private void switchTableToSpecialistReports(Collection<Report> reports, Pane parent) {
         final TableView<Report> table = getNewTableView();
 
-        TableColumn<Report, String> serviceNameColumn = new TableColumn<>("Название услуги");
+        TableColumn<Report, String> serviceNameColumn = new TableColumn<>(NAME);
         serviceNameColumn.setCellValueFactory(new PropertyValueFactory<>("serviceName"));
         table.getColumns().add(serviceNameColumn);
 
-        TableColumn<Report, Double> priceColumn = new TableColumn<>("Цена");
+        TableColumn<Report, Double> priceColumn = new TableColumn<>(PRICE);
         priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
         table.getColumns().add(priceColumn);
 
@@ -360,15 +426,15 @@ public class HelloController {
     private void switchTableToCarServices(Collection<CarService> carServices, Pane parent) {
         final TableView<CarService> table = getNewTableView();
 
-        TableColumn<CarService, String> specialistNameColumn = new TableColumn<>("Имя специалиста");
+        TableColumn<CarService, String> specialistNameColumn = new TableColumn<>(HUMAN_NAME);
         specialistNameColumn.setCellValueFactory(new PropertyValueFactory<>("specialistName"));
         table.getColumns().add(specialistNameColumn);
 
-        TableColumn<CarService, String> serviceNameColumn = new TableColumn<>("Название услуги");
+        TableColumn<CarService, String> serviceNameColumn = new TableColumn<>(NAME);
         serviceNameColumn.setCellValueFactory(new PropertyValueFactory<>("serviceName"));
         table.getColumns().add(serviceNameColumn);
 
-        TableColumn<CarService, Double> priceColumn = new TableColumn<>("Цена");
+        TableColumn<CarService, Double> priceColumn = new TableColumn<>(PRICE);
         priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
         table.getColumns().add(priceColumn);
 
@@ -379,15 +445,15 @@ public class HelloController {
     private void switchTableToServices(Collection<Service> services, Pane parent) {
         final TableView<Service> table = getNewTableView();
 
-        TableColumn<Service, Integer> idColumn = new TableColumn<>("Id");
+        TableColumn<Service, Integer> idColumn = new TableColumn<>(ID);
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         table.getColumns().add(idColumn);
 
-        TableColumn<Service, String> nameColumn = new TableColumn<>("Название");
+        TableColumn<Service, String> nameColumn = new TableColumn<>(NAME);
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         table.getColumns().add(nameColumn);
 
-        TableColumn<Service, Double> priceColumn = new TableColumn<>("Цена");
+        TableColumn<Service, Double> priceColumn = new TableColumn<>(PRICE);
         priceColumn.setCellValueFactory(new PropertyValueFactory<>("price"));
         table.getColumns().add(priceColumn);
 
@@ -408,7 +474,7 @@ public class HelloController {
     private void switchTableToCars(Collection<Car> services, Pane parent) {
         final TableView<Car> table = getNewTableView();
 
-        TableColumn<Car, String> numberColumn = new TableColumn<>("Номер");
+        TableColumn<Car, String> numberColumn = new TableColumn<>(NUMBER);
         numberColumn.setCellValueFactory(new PropertyValueFactory<>("carRegNumber"));
         table.getColumns().add(numberColumn);
 

@@ -1,8 +1,8 @@
 create table SERVICE
 (
     SERVICE_ID   serial primary key,
-    SERVICE_NAME varchar(30) not null,
-    PRICE        money       not null
+    SERVICE_NAME varchar(30)      not null,
+    PRICE        double precision not null
 );
 
 insert into SERVICE(SERVICE_NAME, price)
@@ -69,7 +69,7 @@ create table ISSUED_SERVICE
 (
     ISSUED_SERVICE_ID     serial primary key,
     COMPLETION_DATE       date,
-    SPECIALIST_SERVICE_ID int     not null references SPECIALIST_SERVICE (SPECIALIST_SERVICE_ID),
+    SPECIALIST_SERVICE_ID int,
     CAR_REG_NUMBER        char(9) not null references CAR (CAR_REG_NUMBER)
 );
 
@@ -170,8 +170,10 @@ from ISSUED_SERVICE iss_ser
          left join SPECIALIST_SERVICE spec_ser on iss_ser.SPECIALIST_SERVICE_ID = spec_ser.SPECIALIST_SERVICE_ID
          left join SPECIALIST spec on spec_ser.SPECIALIST_ID = spec.specialist_id
          left join SERVICE ser on spec_ser.SERVICE_ID = ser.service_id
-where date_part('year', COMPLETION_DATE) = 2021 and date_part('month', COMPLETION_DATE) = 8
-  and date_part('day', COMPLETION_DATE) = 29 and SPECIALIST_NAME = 'Олег Грибович';
+where date_part('year', COMPLETION_DATE) = 2021
+  and date_part('month', COMPLETION_DATE) = 8
+  and date_part('day', COMPLETION_DATE) = 29
+  and SPECIALIST_NAME = 'Олег Грибович';
 
 select SERVICE_NAME, PRICE, CAR_REG_NUMBER, COMPLETION_DATE
 from ISSUED_SERVICE iss_ser
@@ -182,3 +184,55 @@ where (date_part('month', COMPLETION_DATE) = 3 * (3 - 1) + 1 or date_part('month
        date_part('month', COMPLETION_DATE) = 3 * (3 - 1) + 3)
   and SPECIALIST_NAME = 'Олег Грибович'
   and date_part('year', COMPLETION_DATE) = 2021;
+
+--1 tr
+insert into CLIENT(CLIENT_NAME, BANK, PHONE_NUMBER)
+values ('Никита Облепиха', '3886993058377384753', '+79478046398');
+insert into CAR
+values ('А7719ПР078', 3);
+--
+
+-- 2 tr
+insert into SPECIALIST(SPECIALIST_NAME, PHONE_NUMBER)
+values ('Аркадий Пакетик', '+77484496396');
+insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID);
+values (7, 4);
+--
+
+insert into CAR
+values ('А564УА003', 3);
+
+insert into SERVICE(SERVICE_NAME, price)
+values ('Полировка кузова', 300);
+
+delete from "user"
+where USERNAME in (select username from USER_CLIENT where CLIENT_ID = 9)
+
+
+update ISSUED_SERVICE
+set COMPLETION_DATE = '2020-01-02'
+where issued_service_id = 1
+  and SPECIALIST_SERVICE_ID in (
+    select SPECIALIST_SERVICE_ID
+    from SPECIALIST_SERVICE
+    where SPECIALIST_ID in (
+        select SPECIALIST_ID
+        from USER_SPECIALIST
+        where USERNAME = 'OG'));
+
+select ISSUED_SERVICE_ID, CAR_REG_NUMBER, COMPLETION_DATE
+from ISSUED_SERVICE
+where SPECIALIST_SERVICE_ID in (
+    select SPECIALIST_SERVICE_ID
+    from SPECIALIST_SERVICE
+    where SPECIALIST_ID in (
+        select SPECIALIST_ID
+        from USER_SPECIALIST
+        where USERNAME = 'IC'));
+
+select ISSUED_SERVICE_ID, CAR.CAR_REG_NUMBER, CLIENT_NAME, SPECIALIST_NAME, SERVICE_NAME, COMPLETION_DATE
+from ISSUED_SERVICE
+         left join CAR on ISSUED_SERVICE.CAR_REG_NUMBER = CAR.CAR_REG_NUMBER
+         left join CLIENT on CLIENT.CLIENT_ID = CAR.CLIENT_ID
+         left join SPECIALIST_SERVICE on SPECIALIST_SERVICE.SPECIALIST_SERVICE_ID = ISSUED_SERVICE.SPECIALIST_SERVICE_ID
+         left join SPECIALIST on SPECIALIST.SPECIALIST_ID = SPECIALIST_SERVICE.SPECIALIST_ID

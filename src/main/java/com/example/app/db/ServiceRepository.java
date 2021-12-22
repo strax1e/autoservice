@@ -4,6 +4,7 @@ import com.example.app.entity.CarService;
 import com.example.app.entity.Service;
 
 import java.sql.SQLException;
+import java.sql.Date;
 import java.util.*;
 
 public class ServiceRepository extends AbstractRepository {
@@ -21,7 +22,8 @@ public class ServiceRepository extends AbstractRepository {
                 var resultSet = statement.executeQuery(sql);
                 while (resultSet.next()) {
                     list.add(new Service(resultSet.getInt("service_id"),
-                            resultSet.getString("service_name"), resultSet.getDouble("price")));
+                            resultSet.getString("service_name"),
+                            resultSet.getDouble("price")));
                 }
 
             }
@@ -82,5 +84,22 @@ public class ServiceRepository extends AbstractRepository {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+    public void addService(String name, double price) {
+        try (var connection = getConnection()) {
+            String sql = """
+                    insert into SERVICE(SERVICE_NAME, PRICE)
+                    values (?, ?);
+                    """;
+            System.out.println(sql);
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setString(1, name);
+                statement.setDouble(2, price);
+                statement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
