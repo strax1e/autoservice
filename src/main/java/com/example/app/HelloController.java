@@ -92,6 +92,7 @@ public class HelloController {
                 createAddCarButton();
                 createShowAllIssuesButton();
                 createAddClientButton();
+                createAddSpecialistButton();
             }
             case CLIENT -> createGetPriceButton(user.username());
             case SPECIALIST -> {
@@ -101,6 +102,44 @@ public class HelloController {
                 createShowMyIssuesButton();
             }
         }
+    }
+
+    private void createAddSpecialistButton() {
+        var buttonAddSpecialist = new Button("Добавить нового специалиста");
+        buttonAddSpecialist.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(
+                    HUMAN_NAME,
+                    "Логин",
+                    "Пароль",
+                    "Номер телефона",
+                    "Идентификатор услуги"
+            ));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            var isAdded = false;
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                try {
+                    isAdded = userRepository.addNewSpecialist(
+                            map.get(HUMAN_NAME),
+                            map.get("Логин"),
+                            map.get("Пароль"),
+                            map.get("Номер телефона"),
+                            Integer.parseInt(map.get("Идентификатор услуги"))
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!isAdded) {
+                var alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Произошла ошибка, изменения отменены");
+                alert.show();
+            }
+        });
+        listView.getItems().add(buttonAddSpecialist);
     }
 
     private void createAddClientButton() {

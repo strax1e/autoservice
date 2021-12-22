@@ -87,4 +87,60 @@ public class UserRepository extends AbstractRepository {
             return false;
         }
     }
+
+    public boolean addNewSpecialist(String specialistName, String username, String password,
+                                    String phone, int serviceId) {
+        try (var connection = getConnection()) {
+            connection.setAutoCommit(false);
+            String sql = """
+                    insert into SPECIALIST(SPECIALIST_NAME, PHONE_NUMBER)
+                    values (?, ?);
+                    """;
+            System.out.println(sql);
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setString(1, specialistName);
+                statement.setString(2, phone);
+                statement.executeUpdate();
+            }
+
+            sql = "select SPECIALIST_ID from SPECIALIST where SPECIALIST_NAME = ?;";
+            System.out.println(sql);
+            int specialistId = -1;
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setString(1, specialistName);
+                var resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    specialistId = resultSet.getInt("SPECIALIST_ID");
+                }
+            }
+            if (specialistId == -1) {
+                throw new SQLException();
+            }
+
+            sql = """
+                    insert into SPECIALIST_SERVICE(SERVICE_ID, SPECIALIST_ID)
+                    values (?, ?);
+                    insert into "user" (USERNAME, PASSWORD, ROLE)
+                    values (?, ?, 'SPECIALIST');
+                    insert into USER_SPECIALIST (SPECIALIST_ID, USERNAME)
+                    values (?, ?);
+                        """;
+            System.out.println(sql);
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, serviceId);
+                statement.setInt(2, specialistId);
+                statement.setString(3, username);
+                statement.setString(4, password);
+                statement.setInt(5, specialistId);
+                statement.setString(6, username);
+                statement.executeUpdate();
+            }
+
+            connection.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
