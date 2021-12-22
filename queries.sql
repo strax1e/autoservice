@@ -287,3 +287,10 @@ from ISSUED_SERVICE
 select CLIENT_ID
 from CLIENT
 where CLIENT_NAME = '';
+
+select car.CAR_REG_NUMBER, CLIENT_NAME, cl.CLIENT_ID
+from ISSUED_SERVICE iss_ser
+         left join CAR car on iss_ser.CAR_REG_NUMBER = car.CAR_REG_NUMBER
+         left join CLIENT cl on car.CLIENT_ID = cl.CLIENT_ID
+where COMPLETION_DATE is null
+group by car.CAR_REG_NUMBER, CLIENT_NAME, cl.CLIENT_ID;
