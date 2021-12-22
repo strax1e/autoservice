@@ -93,6 +93,7 @@ public class HelloController {
                 createShowAllIssuesButton();
                 createAddClientButton();
                 createAddSpecialistButton();
+                createDeleteSpecialistButton();
             }
             case CLIENT -> createGetPriceButton(user.username());
             case SPECIALIST -> {
@@ -102,6 +103,32 @@ public class HelloController {
                 createShowMyIssuesButton();
             }
         }
+    }
+
+    private void createDeleteSpecialistButton() {
+        var buttonDeleteSpecialist = new Button("Удалить специалиста");
+        buttonDeleteSpecialist.setOnAction(ignore -> {
+            Dialog<Map<String, String>> dialog = getDialogWithTextFields(List.of(HUMAN_NAME));
+            Optional<Map<String, String>> result = dialog.showAndWait();
+
+            var isDeleted = false;
+            if (result.isPresent()) {
+                var map = result.get();
+                removeCurrentTableView();
+                try {
+                    isDeleted = userRepository.deleteSpecialist(map.get(HUMAN_NAME));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!isDeleted) {
+                var alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("Произошла ошибка, изменения отменены");
+                alert.show();
+            }
+        });
+        listView.getItems().add(buttonDeleteSpecialist);
     }
 
     private void createAddSpecialistButton() {

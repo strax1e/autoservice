@@ -143,4 +143,43 @@ public class UserRepository extends AbstractRepository {
             return false;
         }
     }
+
+    public boolean deleteSpecialist(String specialistName) {
+        try (var connection = getConnection()) {
+            connection.setAutoCommit(false);
+            String sql = "select SPECIALIST_ID from SPECIALIST where SPECIALIST_NAME = ?";
+            System.out.println(sql);
+            int specialistId = -1;
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setString(1, specialistName);
+                var resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    specialistId = resultSet.getInt("SPECIALIST_ID");
+                }
+            }
+            if (specialistId == -1) {
+                throw new SQLException();
+            }
+
+            sql = """
+                    delete
+                    from "user"
+                    where USERNAME in (select USERNAME from USER_SPECIALIST where SPECIALIST_ID = ?);
+                    delete
+                    from SPECIALIST
+                    where SPECIALIST_ID = ?;
+                    """;
+            System.out.println(sql);
+            try (var statement = connection.prepareStatement(sql)) {
+                statement.setInt(1, specialistId);
+                statement.setInt(2, specialistId);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
