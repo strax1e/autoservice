@@ -20,7 +20,9 @@ public class IssueRepository extends AbstractRepository {
         try (var connection = getConnection()) {
             String sql = """
                     update ISSUED_SERVICE set COMPLETION_DATE = ?
-                    where issued_service_id = ? and SPECIALIST_SERVICE_ID in (
+                    where issued_service_id = ?
+                       and COMPLETION_DATE is null
+                       and SPECIALIST_SERVICE_ID in (
                         select SPECIALIST_SERVICE_ID
                         from SPECIALIST_SERVICE
                         where SPECIALIST_ID in (

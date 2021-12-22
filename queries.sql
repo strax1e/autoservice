@@ -212,6 +212,7 @@ where USERNAME in (select username from USER_CLIENT where CLIENT_ID = 9);
 update ISSUED_SERVICE
 set COMPLETION_DATE = '2020-01-02'
 where issued_service_id = 1
+  and COMPLETION_DATE is null
   and SPECIALIST_SERVICE_ID in (
     select SPECIALIST_SERVICE_ID
     from SPECIALIST_SERVICE
